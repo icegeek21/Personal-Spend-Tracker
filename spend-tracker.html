@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Track your income, fixed costs, and expenses with smart insights">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Spend Tracker">
+    <title>Personal Spend Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 20px 30px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1em;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            background: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .amount {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-card.positive {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .stat-card.negative {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .stat-card.neutral {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .expense-list, .fixed-cost-list {
+            margin-top: 30px;
+        }
+
+        .expense-item, .fixed-cost-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .expense-item:hover, .fixed-cost-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .expense-details {
+            flex-grow: 1;
+        }
+
+        .expense-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .expense-meta {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .expense-amount {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 20px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .filter-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .filter-group select, .filter-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .summary-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-item h4 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .summary-item .value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .budget-progress {
+            margin-top: 30px;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .export-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .insights-section {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .insights-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .insights-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .insights-section li {
+            padding: 8px 0;
+            color: #856404;
+        }
+
+        .insights-section li::before {
+            content: "💡 ";
+            margin-right: 8px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideIn 0.5s ease-out;
+            max-width: 400px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .notification.danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .notification h4 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .notification p {
+            margin: 5px 0;
+        }
+
+        .notification .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .notification .close-btn:hover {
+            opacity: 1;
+        }
+
+        .warning-banner {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .warning-banner.danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .warning-banner .icon {
+            font-size: 2.5em;
+        }
+
+        .warning-banner .content {
+            flex-grow: 1;
+        }
+
+        .warning-banner h3 {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .expense-item, .fixed-cost-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .expense-amount {
+                margin-top: 10px;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Personal Spend Tracker</h1>
+            <p>Take control of your finances</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+            <button class="tab" onclick="switchTab('income')">Income & Fixed Costs</button>
+            <button class="tab" onclick="switchTab('expenses')">Add Expense</button>
+            <button class="tab" onclick="switchTab('analysis')">Analysis & Insights</button>
+            <button class="tab" onclick="switchTab('reports')">Reports</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="stat-card positive">
+                    <h3>Monthly Income</h3>
+                    <div class="amount" id="dashIncome">₹0</div>
+                </div>
+                <div class="stat-card negative">
+                    <h3>Fixed Costs</h3>
+                    <div class="amount" id="dashFixedCosts">₹0</div>
+                </div>
+                <div class="stat-card neutral">
+                    <h3>Total Expenses (This Month)</h3>
+                    <div class="amount" id="dashExpenses">₹0</div>
+                </div>
+                <div class="stat-card positive">
+                    <h3>Net Savings</h3>
+                    <div class="amount" id="dashSavings">₹0</div>
+                </div>
+            </div>
+
+            <div class="summary-section">
+                <h2>Financial Summary</h2>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <h4>Available to Spend</h4>
+                        <div class="value" id="availableToSpend">₹0</div>
+                    </div>
+                    <div class="summary-item">
+                        <h4>Avg Daily Spend</h4>
+                        <div class="value" id="avgDailySpend">₹0</div>
+                    </div>
+                    <div class="summary-item">
+                        <h4>Days Until Month End</h4>
+                        <div class="value" id="daysRemaining">0</div>
+                    </div>
+                    <div class="summary-item">
+                        <h4>Recommended Daily Budget</h4>
+                        <div class="value" id="dailyBudget">₹0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3>Expense Breakdown by Category</h3>
+                <canvas id="categoryChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Spending Trend (Last 30 Days)</h3>
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Income & Fixed Costs Tab -->
+        <div id="income" class="tab-content">
+            <div id="fixedCostWarningBanner"></div>
+            
+            <div class="form-group">
+                <label>Monthly Income (₹)</label>
+                <input type="number" id="monthlyIncome" placeholder="Enter your monthly income">
+            </div>
+            <button class="btn btn-primary" onclick="saveIncome()">Save Income</button>
+
+            <h2 style="margin-top: 40px; margin-bottom: 20px;">Fixed Monthly Costs</h2>
+            
+            <div class="form-group">
+                <label>Cost Name</label>
+                <input type="text" id="fixedCostName" placeholder="e.g., Rent, EMI, Subscription">
+            </div>
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="fixedCostAmount" placeholder="Enter amount">
+            </div>
+            <div class="form-group">
+                <label>Due Date (Day of Month)</label>
+                <input type="number" id="fixedCostDate" min="1" max="31" placeholder="e.g., 5 for 5th of every month">
+            </div>
+            <button class="btn btn-success" onclick="addFixedCost()">Add Fixed Cost</button>
+
+            <div class="fixed-cost-list" id="fixedCostList"></div>
+
+            <div class="summary-section" style="margin-top: 30px;">
+                <h3>Financial Overview</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <h4>Monthly Income</h4>
+                        <div class="value" id="incomeDisplay">₹0</div>
+                    </div>
+                    <div class="summary-item">
+                        <h4>Total Fixed Costs</h4>
+                        <div class="value" id="totalFixedCosts">₹0</div>
+                    </div>
+                    <div class="summary-item">
+                        <h4>Money Available After Fixed Costs</h4>
+                        <div class="value" id="remainingIncome">₹0</div>
+                    </div>
+                    <div class="summary-item">
+                        <h4>Fixed Cost Ratio</h4>
+                        <div class="value" id="fixedCostRatio">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Expense Tab -->
+        <div id="expenses" class="tab-content">
+            <div class="form-group">
+                <label>Expense Title</label>
+                <input type="text" id="expenseTitle" placeholder="e.g., Groceries, Dining Out">
+            </div>
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="expenseAmount" placeholder="Enter amount">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="expenseCategory">
+                    <option value="Food & Dining">🍽️ Food & Dining</option>
+                    <option value="Transportation">🚗 Transportation</option>
+                    <option value="Shopping">🛍️ Shopping</option>
+                    <option value="Entertainment">🎬 Entertainment</option>
+                    <option value="Healthcare">⚕️ Healthcare</option>
+                    <option value="Education">📚 Education</option>
+                    <option value="Bills & Utilities">💡 Bills & Utilities</option>
+                    <option value="Personal Care">💆 Personal Care</option>
+                    <option value="Travel">✈️ Travel</option>
+                    <option value="Gifts & Donations">🎁 Gifts & Donations</option>
+                    <option value="Investments">📈 Investments</option>
+                    <option value="Other">📦 Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="expenseDate">
+            </div>
+            <div class="form-group">
+                <label>Notes (Optional)</label>
+                <textarea id="expenseNotes" rows="3" placeholder="Add any additional details"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="addExpense()">Add Expense</button>
+
+            <h2 style="margin-top: 40px; margin-bottom: 20px;">Recent Expenses</h2>
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label>Filter by Category</label>
+                    <select id="filterCategory" onchange="filterExpenses()">
+                        <option value="all">All Categories</option>
+                        <option value="Food & Dining">🍽️ Food & Dining</option>
+                        <option value="Transportation">🚗 Transportation</option>
+                        <option value="Shopping">🛍️ Shopping</option>
+                        <option value="Entertainment">🎬 Entertainment</option>
+                        <option value="Healthcare">⚕️ Healthcare</option>
+                        <option value="Education">📚 Education</option>
+                        <option value="Bills & Utilities">💡 Bills & Utilities</option>
+                        <option value="Personal Care">💆 Personal Care</option>
+                        <option value="Travel">✈️ Travel</option>
+                        <option value="Gifts & Donations">🎁 Gifts & Donations</option>
+                        <option value="Investments">📈 Investments</option>
+                        <option value="Other">📦 Other</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>From Date</label>
+                    <input type="date" id="filterFromDate" onchange="filterExpenses()">
+                </div>
+                <div class="filter-group">
+                    <label>To Date</label>
+                    <input type="date" id="filterToDate" onchange="filterExpenses()">
+                </div>
+            </div>
+            <div class="expense-list" id="expenseList"></div>
+        </div>
+
+        <!-- Analysis & Insights Tab -->
+        <div id="analysis" class="tab-content">
+            <div class="insights-section" id="insightsSection">
+                <h3>💡 Smart Insights</h3>
+                <ul id="insightsList"></ul>
+            </div>
+
+            <div class="chart-container">
+                <h3>Category-wise Spending Distribution</h3>
+                <canvas id="pieChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3>Monthly Comparison (Last 6 Months)</h3>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+
+            <div class="budget-progress">
+                <h3>Budget Utilization</h3>
+                <p>Available Income After Fixed Costs: <strong id="budgetTotal">₹0</strong></p>
+                <p>Spent This Month: <strong id="budgetSpent">₹0</strong></p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="budgetProgressBar">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <h2>Monthly Reports</h2>
+            
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label>Select Month</label>
+                    <input type="month" id="reportMonth" onchange="generateReport()">
+                </div>
+                <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+            </div>
+
+            <div id="reportContent"></div>
+
+            <div class="export-section">
+                <h3>Export Data</h3>
+                <button class="btn btn-success" onclick="exportToCSV()">📥 Export to CSV</button>
+                <button class="btn btn-primary" onclick="exportToJSON()">📥 Export to JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notificationContainer"></div>
+
+    <script>
+        // Initialize storage
+        let data = {
+            income: 0,
+            fixedCosts: [],
+            expenses: [],
+            lastWarningShown: null
+        };
+
+        // Notification system
+        function showNotification(type, title, message) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <button class="close-btn" onclick="this.parentElement.remove()">×</button>
+                <h4>${title}</h4>
+                <p>${message}</p>
+            `;
+            container.appendChild(notification);
+
+            // Auto-remove after 8 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 8000);
+        }
+
+        // Check fixed cost ratio and show warnings
+        function checkFixedCostWarnings() {
+            if (data.income === 0) return;
+
+            const totalFixed = data.fixedCosts.reduce((sum, fc) => sum + fc.amount, 0);
+            const ratio = (totalFixed / data.income) * 100;
+
+            // Update banner in Income tab
+            const banner = document.getElementById('fixedCostWarningBanner');
+            
+            if (ratio >= 70) {
+                banner.innerHTML = `
+                    <div class="warning-banner danger">
+                        <div class="icon">🚨</div>
+                        <div class="content">
+                            <h3>Critical: Fixed Costs Too High!</h3>
+                            <p>Your fixed costs are <strong>${ratio.toFixed(1)}%</strong> of your income (₹${totalFixed.toLocaleString('en-IN')} / ₹${data.income.toLocaleString('en-IN')})</p>
+                            <p>This leaves you with very little flexibility. Consider reducing fixed expenses or increasing income.</p>
+                        </div>
+                    </div>
+                `;
+
+                // Show notification only once when crossing 70%
+                if (data.lastWarningShown !== 'exceeded70') {
+                    showNotification(
+                        'danger',
+                        '🚨 Fixed Costs Alert!',
+                        `Your fixed costs have exceeded 70% of your income (${ratio.toFixed(1)}%). You have only ₹${(data.income - totalFixed).toLocaleString('en-IN')} available for variable expenses and savings.`
+                    );
+                    data.lastWarningShown = 'exceeded70';
+                    saveData();
+                }
+            } else if (ratio >= 65) {
+                banner.innerHTML = `
+                    <div class="warning-banner warning">
+                        <div class="icon">⚠️</div>
+                        <div class="content">
+                            <h3>Warning: Fixed Costs Approaching 70%</h3>
+                            <p>Your fixed costs are <strong>${ratio.toFixed(1)}%</strong> of your income (₹${totalFixed.toLocaleString('en-IN')} / ₹${data.income.toLocaleString('en-IN')})</p>
+                            <p>You're getting close to the 70% threshold. Only ₹${((data.income * 0.7) - totalFixed).toLocaleString('en-IN')} away from critical level.</p>
+                        </div>
+                    </div>
+                `;
+
+                // Show notification when approaching 70%
+                if (data.lastWarningShown !== 'approaching70' && data.lastWarningShown !== 'exceeded70') {
+                    showNotification(
+                        'warning',
+                        '⚠️ Fixed Costs Warning',
+                        `Your fixed costs are at ${ratio.toFixed(1)}% of your income, approaching the 70% threshold. Consider reviewing your fixed expenses.`
+                    );
+                    data.lastWarningShown = 'approaching70';
+                    saveData();
+                }
+            } else {
+                banner.innerHTML = '';
+                // Reset warning state if ratio drops below 65%
+                if (ratio < 60 && data.lastWarningShown) {
+                    data.lastWarningShown = null;
+                    saveData();
+                }
+            }
+        }
+
+        // Load data from storage
+        async function loadData() {
+            try {
+                const incomeResult = await window.storage.get('income');
+                if (incomeResult) {
+                    data.income = JSON.parse(incomeResult.value);
+                }
+
+                const fixedCostsResult = await window.storage.get('fixedCosts');
+                if (fixedCostsResult) {
+                    data.fixedCosts = JSON.parse(fixedCostsResult.value);
+                }
+
+                const expensesResult = await window.storage.get('expenses');
+                if (expensesResult) {
+                    data.expenses = JSON.parse(expensesResult.value);
+                }
+
+                const warningResult = await window.storage.get('lastWarningShown');
+                if (warningResult) {
+                    data.lastWarningShown = JSON.parse(warningResult.value);
+                }
+            } catch (error) {
+                console.log('No saved data found, starting fresh');
+            }
+            updateAllDisplays();
+        }
+
+        // Save data to storage
+        async function saveData() {
+            try {
+                await window.storage.set('income', JSON.stringify(data.income));
+                await window.storage.set('fixedCosts', JSON.stringify(data.fixedCosts));
+                await window.storage.set('expenses', JSON.stringify(data.expenses));
+                await window.storage.set('lastWarningShown', JSON.stringify(data.lastWarningShown));
+            } catch (error) {
+                console.error('Error saving data:', error);
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'dashboard' || tabName === 'analysis') {
+                updateAllDisplays();
+            }
+        }
+
+        // Save income
+        async function saveIncome() {
+            const income = parseFloat(document.getElementById('monthlyIncome').value);
+            if (isNaN(income) || income <= 0) {
+                alert('Please enter a valid income amount');
+                return;
+            }
+            data.income = income;
+            await saveData();
+            checkFixedCostWarnings();
+            updateAllDisplays();
+            alert('Income saved successfully!');
+        }
+
+        // Add fixed cost
+        async function addFixedCost() {
+            const name = document.getElementById('fixedCostName').value;
+            const amount = parseFloat(document.getElementById('fixedCostAmount').value);
+            const date = parseInt(document.getElementById('fixedCostDate').value);
+
+            if (!name || isNaN(amount) || amount <= 0) {
+                alert('Please fill in all fields correctly');
+                return;
+            }
+
+            const fixedCost = {
+                id: Date.now(),
+                name,
+                amount,
+                dueDate: date || 1
+            };
+
+            data.fixedCosts.push(fixedCost);
+            await saveData();
+            checkFixedCostWarnings();
+            updateAllDisplays();
+            
+            document.getElementById('fixedCostName').value = '';
+            document.getElementById('fixedCostAmount').value = '';
+            document.getElementById('fixedCostDate').value = '';
+        }
+
+        // Delete fixed cost
+        async function deleteFixedCost(id) {
+            if (confirm('Are you sure you want to delete this fixed cost?')) {
+                data.fixedCosts = data.fixedCosts.filter(fc => fc.id !== id);
+                await saveData();
+                checkFixedCostWarnings();
+                updateAllDisplays();
+            }
+        }
+
+        // Add expense
+        async function addExpense() {
+            const title = document.getElementById('expenseTitle').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const category = document.getElementById('expenseCategory').value;
+            const date = document.getElementById('expenseDate').value;
+            const notes = document.getElementById('expenseNotes').value;
+
+            if (!title || isNaN(amount) || amount <= 0 || !date) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const expense = {
+                id: Date.now(),
+                title,
+                amount,
+                category,
+                date,
+                notes
+            };
+
+            data.expenses.push(expense);
+            await saveData();
+            updateAllDisplays();
+            
+            document.getElementById('expenseTitle').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseNotes').value = '';
+            document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+            
+            alert('Expense added successfully!');
+        }
+
+        // Delete expense
+        async function deleteExpense(id) {
+            if (confirm('Are you sure you want to delete this expense?')) {
+                data.expenses = data.expenses.filter(exp => exp.id !== id);
+                await saveData();
+                updateAllDisplays();
+            }
+        }
+
+        // Display fixed costs
+        function displayFixedCosts() {
+            const list = document.getElementById('fixedCostList');
+            list.innerHTML = '';
+
+            if (data.fixedCosts.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 40px;">No fixed costs added yet. Add your first fixed cost above!</p>';
+                return;
+            }
+
+            data.fixedCosts.forEach(fc => {
+                const item = document.createElement('div');
+                item.className = 'fixed-cost-item';
+                item.innerHTML = `
+                    <div class="expense-details">
+                        <div class="expense-title">${fc.name}</div>
+                        <div class="expense-meta">Due on: ${fc.dueDate}th of every month</div>
+                    </div>
+                    <div class="expense-amount">₹${fc.amount.toLocaleString('en-IN')}</div>
+                    <button class="btn btn-danger" onclick="deleteFixedCost(${fc.id})">Delete</button>
+                `;
+                list.appendChild(item);
+            });
+
+            const totalFixed = data.fixedCosts.reduce((sum, fc) => sum + fc.amount, 0);
+            document.getElementById('totalFixedCosts').textContent = '₹' + totalFixed.toLocaleString('en-IN');
+            document.getElementById('incomeDisplay').textContent = '₹' + data.income.toLocaleString('en-IN');
+            
+            const remaining = data.income - totalFixed;
+            document.getElementById('remainingIncome').textContent = '₹' + remaining.toLocaleString('en-IN');
+            
+            const ratio = data.income > 0 ? ((totalFixed / data.income) * 100).toFixed(1) : 0;
+            document.getElementById('fixedCostRatio').textContent = ratio + '%';
+        }
+
+        // Display expenses
+        function displayExpenses(expenses = null) {
+            const list = document.getElementById('expenseList');
+            list.innerHTML = '';
+
+            const expensesToDisplay = expenses || data.expenses;
+
+            if (expensesToDisplay.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 40px;">No expenses recorded yet. Add your first expense above!</p>';
+                return;
+            }
+
+            const sortedExpenses = [...expensesToDisplay].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedExpenses.forEach(exp => {
+                const item = document.createElement('div');
+                item.className = 'expense-item';
+                const categoryColors = {
+                    'Food & Dining': '#ff6b6b',
+                    'Transportation': '#4ecdc4',
+                    'Shopping': '#f9ca24',
+                    'Entertainment': '#e056fd',
+                    'Healthcare': '#48dbfb',
+                    'Education': '#0abde3',
+                    'Bills & Utilities': '#ee5a6f',
+                    'Personal Care': '#feca57',
+                    'Travel': '#1dd1a1',
+                    'Gifts & Donations': '#ff9ff3',
+                    'Investments': '#54a0ff',
+                    'Other': '#c8d6e5'
+                };
+                
+                item.innerHTML = `
+                    <div class="expense-details">
+                        <div class="expense-title">
+                            ${exp.title}
+                            <span class="category-badge" style="background: ${categoryColors[exp.category]}; color: white;">
+                                ${exp.category}
+                            </span>
+                        </div>
+                        <div class="expense-meta">
+                            📅 ${new Date(exp.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            ${exp.notes ? '<br>📝 ' + exp.notes : ''}
+                        </div>
+                    </div>
+                    <div class="expense-amount">₹${exp.amount.toLocaleString('en-IN')}</div>
+                    <button class="btn btn-danger" onclick="deleteExpense(${exp.id})">Delete</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // Filter expenses
+        function filterExpenses() {
+            const category = document.getElementById('filterCategory').value;
+            const fromDate = document.getElementById('filterFromDate').value;
+            const toDate = document.getElementById('filterToDate').value;
+
+            let filtered = data.expenses;
+
+            if (category !== 'all') {
+                filtered = filtered.filter(exp => exp.category === category);
+            }
+
+            if (fromDate) {
+                filtered = filtered.filter(exp => exp.date >= fromDate);
+            }
+
+            if (toDate) {
+                filtered = filtered.filter(exp => exp.date <= toDate);
+            }
+
+            displayExpenses(filtered);
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            const totalFixed = data.fixedCosts.reduce((sum, fc) => sum + fc.amount, 0);
+            
+            const now = new Date();
+            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthExpenses = data.expenses.filter(exp => exp.date.startsWith(thisMonth));
+            const totalExpenses = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            
+            const netSavings = data.income - totalFixed - totalExpenses;
+            const availableToSpend = data.income - totalFixed - totalExpenses;
+
+            document.getElementById('dashIncome').textContent = '₹' + data.income.toLocaleString('en-IN');
+            document.getElementById('dashFixedCosts').textContent = '₹' + totalFixed.toLocaleString('en-IN');
+            document.getElementById('dashExpenses').textContent = '₹' + totalExpenses.toLocaleString('en-IN');
+            document.getElementById('dashSavings').textContent = '₹' + netSavings.toLocaleString('en-IN');
+            document.getElementById('availableToSpend').textContent = '₹' + availableToSpend.toLocaleString('en-IN');
+
+            // Calculate days remaining
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const daysRemaining = lastDay - now.getDate();
+            document.getElementById('daysRemaining').textContent = daysRemaining;
+
+            // Average daily spend
+            const daysElapsed = now.getDate();
+            const avgDaily = daysElapsed > 0 ? totalExpenses / daysElapsed : 0;
+            document.getElementById('avgDailySpend').textContent = '₹' + avgDaily.toFixed(0);
+
+            // Recommended daily budget
+            const dailyBudget = daysRemaining > 0 ? availableToSpend / daysRemaining : 0;
+            document.getElementById('dailyBudget').textContent = '₹' + dailyBudget.toFixed(0);
+
+            updateCategoryChart();
+            updateTrendChart();
+        }
+
+        // Update category chart
+        let categoryChart = null;
+        function updateCategoryChart() {
+            const now = new Date();
+            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthExpenses = data.expenses.filter(exp => exp.date.startsWith(thisMonth));
+
+            const categoryTotals = {};
+            monthExpenses.forEach(exp => {
+                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+            });
+
+            const ctx = document.getElementById('categoryChart');
+            if (categoryChart) {
+                categoryChart.destroy();
+            }
+
+            categoryChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(categoryTotals),
+                    datasets: [{
+                        label: 'Spending by Category (₹)',
+                        data: Object.values(categoryTotals),
+                        backgroundColor: [
+                            '#ff6b6b', '#4ecdc4', '#f9ca24', '#e056fd',
+                            '#48dbfb', '#0abde3', '#ee5a6f', '#feca57',
+                            '#1dd1a1', '#ff9ff3', '#54a0ff', '#c8d6e5'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update trend chart
+        let trendChart = null;
+        function updateTrendChart() {
+            const last30Days = [];
+            const dailyTotals = {};
+            
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                last30Days.push(dateStr);
+                dailyTotals[dateStr] = 0;
+            }
+
+            data.expenses.forEach(exp => {
+                if (dailyTotals.hasOwnProperty(exp.date)) {
+                    dailyTotals[exp.date] += exp.amount;
+                }
+            });
+
+            const ctx = document.getElementById('trendChart');
+            if (trendChart) {
+                trendChart.destroy();
+            }
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: last30Days.map(d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })),
+                    datasets: [{
+                        label: 'Daily Spending (₹)',
+                        data: last30Days.map(d => dailyTotals[d]),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update analysis tab
+        let pieChart = null;
+        let monthlyChart = null;
+
+        function updateAnalysis() {
+            const now = new Date();
+            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthExpenses = data.expenses.filter(exp => exp.date.startsWith(thisMonth));
+            const totalExpenses = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const totalFixed = data.fixedCosts.reduce((sum, fc) => sum + fc.amount, 0);
+            const availableBudget = data.income - totalFixed;
+
+            document.getElementById('budgetTotal').textContent = '₹' + availableBudget.toLocaleString('en-IN');
+            document.getElementById('budgetSpent').textContent = '₹' + totalExpenses.toLocaleString('en-IN');
+
+            const percentage = availableBudget > 0 ? (totalExpenses / availableBudget) * 100 : 0;
+            const progressBar = document.getElementById('budgetProgressBar');
+            progressBar.style.width = Math.min(percentage, 100) + '%';
+            progressBar.textContent = percentage.toFixed(1) + '%';
+
+            if (percentage > 90) {
+                progressBar.className = 'progress-fill danger';
+            } else if (percentage > 70) {
+                progressBar.className = 'progress-fill warning';
+            } else {
+                progressBar.className = 'progress-fill';
+            }
+
+            // Pie chart
+            const categoryTotals = {};
+            monthExpenses.forEach(exp => {
+                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+            });
+
+            const ctx1 = document.getElementById('pieChart');
+            if (pieChart) {
+                pieChart.destroy();
+            }
+
+            pieChart = new Chart(ctx1, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(categoryTotals),
+                    datasets: [{
+                        data: Object.values(categoryTotals),
+                        backgroundColor: [
+                            '#ff6b6b', '#4ecdc4', '#f9ca24', '#e056fd',
+                            '#48dbfb', '#0abde3', '#ee5a6f', '#feca57',
+                            '#1dd1a1', '#ff9ff3', '#54a0ff', '#c8d6e5'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // Monthly comparison chart
+            const last6Months = [];
+            const monthlyTotals = [];
+
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                last6Months.push(date.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }));
+                
+                const total = data.expenses
+                    .filter(exp => exp.date.startsWith(monthStr))
+                    .reduce((sum, exp) => sum + exp.amount, 0);
+                monthlyTotals.push(total);
+            }
+
+            const ctx2 = document.getElementById('monthlyChart');
+            if (monthlyChart) {
+                monthlyChart.destroy();
+            }
+
+            monthlyChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: last6Months,
+                    datasets: [{
+                        label: 'Monthly Spending (₹)',
+                        data: monthlyTotals,
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Generate insights
+            generateInsights();
+        }
+
+        // Generate insights
+        function generateInsights() {
+            const now = new Date();
+            const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const monthExpenses = data.expenses.filter(exp => exp.date.startsWith(thisMonth));
+            const insights = [];
+
+            const categoryTotals = {};
+            monthExpenses.forEach(exp => {
+                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+            });
+
+            const topCategory = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+            if (topCategory) {
+                insights.push(`Your highest spending category is ${topCategory[0]} at ₹${topCategory[1].toLocaleString('en-IN')}`);
+            }
+
+            const totalFixed = data.fixedCosts.reduce((sum, fc) => sum + fc.amount, 0);
+            const fixedRatio = data.income > 0 ? (totalFixed / data.income) * 100 : 0;
+            if (fixedRatio > 50) {
+                insights.push(`Your fixed costs are ${fixedRatio.toFixed(1)}% of income - consider reducing fixed expenses`);
+            } else if (fixedRatio < 30) {
+                insights.push(`Great! Your fixed costs are only ${fixedRatio.toFixed(1)}% of income`);
+            }
+
+            const totalExpenses = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const daysElapsed = now.getDate();
+            const avgDaily = daysElapsed > 0 ? totalExpenses / daysElapsed : 0;
+
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const daysRemaining = lastDay - now.getDate();
+            const availableAfterFixed = data.income - totalFixed - totalExpenses;
+            const recommendedDaily = daysRemaining > 0 ? availableAfterFixed / daysRemaining : 0;
+
+            if (avgDaily > recommendedDaily && daysRemaining > 0) {
+                insights.push(`You're spending ₹${avgDaily.toFixed(0)}/day but should target ₹${recommendedDaily.toFixed(0)}/day to stay on budget`);
+            }
+
+            const savingsRate = data.income > 0 ? ((data.income - totalFixed - totalExpenses) / data.income) * 100 : 0;
+            if (savingsRate > 30) {
+                insights.push(`Excellent! You're saving ${savingsRate.toFixed(1)}% of your income this month`);
+            } else if (savingsRate < 10 && savingsRate > 0) {
+                insights.push(`Your savings rate is ${savingsRate.toFixed(1)}% - try to increase it to at least 20%`);
+            } else if (savingsRate <= 0) {
+                insights.push(`You're spending more than you earn this month - time to cut back!`);
+            }
+
+            const list = document.getElementById('insightsList');
+            list.innerHTML = insights.map(insight => `<li>${insight}</li>`).join('');
+        }
+
+        // Generate report
+        function generateReport() {
+            const monthInput = document.getElementById('reportMonth').value;
+            if (!monthInput) {
+                alert('Please select a month');
+                return;
+            }
+
+            const monthExpenses = data.expenses.filter(exp => exp.date.startsWith(monthInput));
+            const totalExpenses = monthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const totalFixed = data.fixedCosts.reduce((sum, fc) => sum + fc.amount, 0);
+
+            const categoryTotals = {};
+            monthExpenses.forEach(exp => {
+                categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
+            });
+
+            const reportContent = document.getElementById('reportContent');
+            reportContent.innerHTML = `
+                <div class="summary-section" style="margin-top: 20px;">
+                    <h3>Report for ${new Date(monthInput).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <h4>Income</h4>
+                            <div class="value">₹${data.income.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div class="summary-item">
+                            <h4>Fixed Costs</h4>
+                            <div class="value">₹${totalFixed.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div class="summary-item">
+                            <h4>Variable Expenses</h4>
+                            <div class="value">₹${totalExpenses.toLocaleString('en-IN')}</div>
+                        </div>
+                        <div class="summary-item">
+                            <h4>Net Savings</h4>
+                            <div class="value">₹${(data.income - totalFixed - totalExpenses).toLocaleString('en-IN')}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 30px;">Category Breakdown</h3>
+                ${Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => `
+                    <div class="expense-item">
+                        <div class="expense-details">
+                            <div class="expense-title">${cat}</div>
+                        </div>
+                        <div class="expense-amount">₹${amt.toLocaleString('en-IN')}</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Export functions
+        function exportToCSV() {
+            let csv = 'Type,Name,Category,Amount,Date,Notes\n';
+            
+            data.fixedCosts.forEach(fc => {
+                csv += `Fixed Cost,${fc.name},-,${fc.amount},${fc.dueDate}th of month,-\n`;
+            });
+
+            data.expenses.forEach(exp => {
+                csv += `Expense,${exp.title},${exp.category},${exp.amount},${exp.date},"${exp.notes}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `spend-tracker-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function exportToJSON() {
+            const jsonData = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `spend-tracker-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        // Update all displays
+        function updateAllDisplays() {
+            displayFixedCosts();
+            displayExpenses();
+            updateDashboard();
+            updateAnalysis();
+            checkFixedCostWarnings();
+        }
+
+        // Initialize
+        document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('reportMonth').value = new Date().toISOString().slice(0, 7);
+        loadData();
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed'));
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show custom install banner
+            const installBanner = document.createElement('div');
+            installBanner.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                z-index: 1000;
+                display: flex;
+                gap: 15px;
+                align-items: center;
+                max-width: 90%;
+            `;
+            installBanner.innerHTML = `
+                <div style="flex-grow: 1;">
+                    <strong>📱 Install App</strong>
+                    <div style="font-size: 0.9em; opacity: 0.9;">Add to home screen for quick access</div>
+                </div>
+                <button id="installBtn" style="background: white; color: #667eea; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer;">Install</button>
+                <button id="dismissBtn" style="background: transparent; color: white; border: 1px solid white; padding: 10px 15px; border-radius: 5px; cursor: pointer;">Later</button>
+            `;
+            document.body.appendChild(installBanner);
+
+            document.getElementById('installBtn').addEventListener('click', async () => {
+                installBanner.remove();
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response: ${outcome}`);
+                deferredPrompt = null;
+            });
+
+            document.getElementById('dismissBtn').addEventListener('click', () => {
+                installBanner.remove();
+            });
+        });
+    </script>
+</body>
+</html>
